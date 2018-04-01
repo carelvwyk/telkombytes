@@ -1,41 +1,30 @@
 package main
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"log"
+	"flag"
+	"fmt"
+	"os"
 
 	"telkom"
 )
 
-const configFile = "telkombytes.conf"
-
-type Config struct {
-	MobileNumber string
-}
+var mobileNum = flag.String("mobilenumber", "",
+	"The mobile number of your current Telkom connection e.g. 0812134567")
 
 func main() {
-	// Read config
-	cfg := Config{"0821234567"}
-	configFormat, _ := json.Marshal(&cfg)
-	cd, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		log.Fatalf("Make sure configuration file '%s' exists in same "+
-			"directory. Format: %s",
-			configFile, configFormat)
-	}
-	err = json.Unmarshal(cd, &cfg)
-	if err != nil || len(cfg.MobileNumber) != 10 || cfg.MobileNumber[0] != '0' {
-		log.Fatalf("Config file format: %s", configFormat)
+	flag.Parse()
+
+	if *mobileNum == "" {
+		fmt.Println("Usage:")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
 
 	// Retrieve Telkom Mobile bundle information
-	bundles, err := telkom.GetBundlesInfo(cfg.MobileNumber)
+	bundles, err := telkom.GetBundlesInfo(*mobileNum)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Print(err)
+		os.Exit(1)
 	}
-	for _, b := range bundles {
-		log.Println(b)
-	}
-	log.Println(bundles.CapRemainingBytes())
+	fmt.Print(bundles.CapRemainingBytes())
 }
