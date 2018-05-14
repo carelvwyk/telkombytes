@@ -1,43 +1,47 @@
-package bundles
+package bundles_test
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"telkom/bundles"
 )
 
 func TestParse(t *testing.T) {
 	tests := []struct {
-		input           []byte
-		expectError     bool
-		expectedBundles BundleList
+		input                   []byte
+		expectError             bool
+		expectedBundles         bundles.BundleList
+		expectedAnytimeData     int64
+		expectedNightsurferData int64
 	}{
-		{[]byte{}, false, nil},
-		{[]byte("s2.endBillCycle="), true, nil},
+		{[]byte{}, false, nil, 0, 0},
+		{[]byte("s2.endBillCycle="), true, nil, 0, 0},
 		{[]byte(testData), false,
-			BundleList{
-				Bundle{
+			bundles.BundleList{
+				bundles.Bundle{
 					Name:           "Once-off LTE/LTE-A Night Surfer Data",
 					ExpiryDate:     time.Date(2018, 4, 20, 0, 0, 0, 0, time.UTC),
 					BytesUsed:      0,
 					BytesRemaining: 21474836480,
 				},
-				Bundle{
+				bundles.Bundle{
 					Name:           "Once-off LTE/LTE-A Anytime Data",
 					ExpiryDate:     time.Date(2018, 4, 20, 0, 0, 0, 0, time.UTC),
 					BytesUsed:      701075310,
 					BytesRemaining: 20773761170,
 				},
-				Bundle{
+				bundles.Bundle{
 					Name:           "Wi-Fi Data Unlimited Speed",
 					ExpiryDate:     time.Date(2018, 3, 31, 0, 0, 0, 0, time.UTC),
 					BytesUsed:      0,
 					BytesRemaining: 10737418240,
 				},
-			}},
+			}, 20773761170, 21474836480},
 	}
 	for i, test := range tests {
-		bl, err := Parse(test.input)
+		bl, err := bundles.Parse(test.input)
 		if (err != nil) != test.expectError {
 			t.Errorf("Test %d did not pass expected error check", i)
 			continue
@@ -50,6 +54,15 @@ func TestParse(t *testing.T) {
 		if string(actual) != string(expected) {
 			t.Errorf("Test %d\nExpected:\n%s\nActual:\n%s", i, string(expected),
 				string(actual))
+		}
+		anytime, nightsurfer := bl.CapRemainingBytes()
+		if anytime != test.expectedAnytimeData {
+			t.Errorf("Expected anytime remaining %d, actual: %d",
+				test.expectedAnytimeData, anytime)
+		}
+		if nightsurfer != test.expectedNightsurferData {
+			t.Errorf("Expected nightsurfer remaining %d, actual: %d",
+				test.expectedNightsurferData, anytime)
 		}
 	}
 }

@@ -12,17 +12,20 @@ import (
 type BundleList []Bundle
 
 // CapRemainingBytes returns the amount of bytes remaining in your data cap
-// disregarding night surfer and wifi bundles.
-func (bl BundleList) CapRemainingBytes() int64 {
-	var r int64
+// disregarding wifi bundles.
+func (bl BundleList) CapRemainingBytes() (anytime, nightsurfer int64) {
 	for _, b := range bl {
 		lower := strings.ToLower(b.Name)
-		if !strings.Contains(lower, "night") &&
-			!strings.Contains(lower, "wi-fi") {
-			r += b.BytesRemaining
+		if strings.Contains(lower, "wi-fi") {
+			continue
+		}
+		if strings.Contains(lower, "night") {
+			nightsurfer += b.BytesRemaining
+		} else {
+			anytime += b.BytesRemaining
 		}
 	}
-	return r
+	return
 }
 
 // Bundle represents a Telkom Mobile bundle and its state.
