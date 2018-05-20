@@ -2,29 +2,25 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"os"
+	"log"
 
-	"telkom"
+	"telkom/netclient"
 )
 
-var mobileNum = flag.String("mobilenumber", "",
-	"The mobile number of your current Telkom connection e.g. 0812134567")
+var (
+	username = flag.String("username", "", "Telkom username")
+	password = flag.String("password", "", "Telkom password")
+)
 
 func main() {
 	flag.Parse()
 
-	if *mobileNum == "" {
-		fmt.Println("Usage:")
-		flag.PrintDefaults()
-		os.Exit(1)
+	services, err := netclient.GetBundles(*username, *password)
+	if err != nil {
+		log.Fatalf(err.Error())
 	}
 
-	// Retrieve Telkom Mobile bundle information
-	bundles, err := telkom.GetBundlesInfo(*mobileNum)
-	if err != nil {
-		fmt.Print(err)
-		os.Exit(1)
+	for _, s := range services {
+		log.Println(s)
 	}
-	fmt.Print(bundles.CapRemainingBytes())
 }
