@@ -169,6 +169,9 @@ func getAssociatedServices(cookies *cookiejar.Jar) (msisdns []string, err error)
 		}
 	}{}
 	b, err := apiPostRequest(url, "", cookies)
+	if err != nil {
+		return
+	}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
 		return
