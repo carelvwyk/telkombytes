@@ -21,6 +21,7 @@ const (
 // used amount in bytes.
 type Bundle struct {
 	Name           string
+	Service        string
 	RemainingBytes int64
 	UsedBytes      int64
 }
@@ -44,6 +45,36 @@ func (s Service) String() string {
 			float64(b.TotalBytes())/1024/1024/1024, b.Name)
 	}
 	return res
+}
+
+func (s Service) NonFreeBytesRemaining() (remaining int64) {
+	for _, b := range s.Bundles {
+		if b.Service != "GPRS" {
+			continue
+		}
+		lowerName := strings.ToLower(b.Name)
+		if strings.Contains(lowerName, "night surfer") {
+			continue
+		}
+		if strings.Contains(lowerName, "all networks data") ||
+			strings.Contains(lowerName, "smartbroadband data") {
+			remaining += b.RemainingBytes
+		}
+	}
+	return
+}
+
+func (s Service) NightSurferRemaining() (remaining int64) {
+	for _, b := range s.Bundles {
+		if b.Service != "GPRS" {
+			continue
+		}
+		lowerName := strings.ToLower(b.Name)
+		if strings.Contains(lowerName, "night surfer") {
+			remaining += b.RemainingBytes
+		}
+	}
+	return
 }
 
 func printRequest(req *http.Request) {
@@ -73,8 +104,8 @@ func handleRedir(req *http.Request, via []*http.Request, jar *cookiejar.Jar) err
 			if strings.Contains(cookie, ":") {
 				prevResp.Header["Set-Cookie"][i] =
 					strings.Replace(cookie, ":", colonSub, -1)
-				fmt.Printf("< Setting cookie: %v for domain %s\n",
-					prevResp.Header["Set-Cookie"][i], prevReq.URL.Host)
+				// fmt.Printf("< Setting cookie: %v for domain %s\n",
+				// 	prevResp.Header["Set-Cookie"][i], prevReq.URL.Host)
 			}
 		}
 		jar.SetCookies(prevReq.URL, prevResp.Cookies())
@@ -89,7 +120,7 @@ func handleRedir(req *http.Request, via []*http.Request, jar *cookiejar.Jar) err
 		req.Header["Cookie"][i] = strings.Replace(ch, "COLON", ":", -1)
 	}
 
-	printRequest(req)
+	//printRequest(req)
 	return nil
 }
 
@@ -193,6 +224,7 @@ func getFreeResources(msisdn string, cookies *cookiejar.Jar) ([]Bundle, error) {
 				TotalAmount string // Note: Can have value "Unlimited"
 				UsedAmount  string // Note: Can have value "Unlimited"
 				TypeName    string
+				Service     string
 			}
 		}
 	}{}
@@ -223,6 +255,7 @@ func getFreeResources(msisdn string, cookies *cookiejar.Jar) ([]Bundle, error) {
 		sfr := pl.SubscriberFreeResource
 		b := Bundle{
 			Name:           sfr.TypeName,
+			Service:        sfr.Service,
 			RemainingBytes: parseNumber(sfr.TotalAmount),
 			UsedBytes:      parseNumber(sfr.UsedAmount),
 		}
@@ -261,7 +294,7 @@ func apiPostRequest(url, body string, cookies *cookiejar.Jar) (
 	return ioutil.ReadAll(res.Body)
 }
 
-func GetBundles(username, password string) ([]Service, error) {
+func GetServiceBundles(username, password string) ([]Service, error) {
 	// Log in
 	cookies, err := logIn(username, password)
 	if err != nil {
