@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	userAgent = "TelkomBytes 0.1"
-	colonSub  = "COLON"
+	userAgent     = "TelkomBytes 0.2"
+	colonSub      = "COLON"
+	betaLoginHost = "https://beta-login.telkom.co.za"
 )
 
 // Bundle represents a Telkom bundle including the bundle name, total amount and
@@ -104,11 +105,14 @@ func handleRedir(req *http.Request, via []*http.Request, jar *cookiejar.Jar) err
 			if strings.Contains(cookie, ":") {
 				prevResp.Header["Set-Cookie"][i] =
 					strings.Replace(cookie, ":", colonSub, -1)
-				// fmt.Printf("< Setting cookie: %v for domain %s\n",
-				// 	prevResp.Header["Set-Cookie"][i], prevReq.URL.Host)
 			}
+			// fmt.Printf("< Setting cookie: %v for domain %s\n",
+			// 	prevResp.Header["Set-Cookie"][i], prevReq.URL.Host)
 		}
 		jar.SetCookies(prevReq.URL, prevResp.Cookies())
+		// For good measure:
+		u, _ := url.Parse(betaLoginHost)
+		jar.SetCookies(u, prevResp.Cookies())
 	}
 
 	// Update Cookies on request (desanitise problematic cookies)
@@ -184,6 +188,7 @@ func logIn(username, password string) (jar *cookiejar.Jar, err error) {
 		return
 	}
 	defer loginResp.Body.Close()
+	//printRequest(loginReq)
 	if sc := loginResp.StatusCode; sc != 200 {
 		return nil, fmt.Errorf("Request to %s returned unexpected status %d",
 			loginURL, sc)
